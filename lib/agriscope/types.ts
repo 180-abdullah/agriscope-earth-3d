@@ -120,4 +120,4 @@ export interface MissionDefinition {
 
   // Additional scientific parameters shown only in Research mode
   researchFields?: ParameterField[];
-}}
+}
