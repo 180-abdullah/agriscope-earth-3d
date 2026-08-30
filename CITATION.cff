@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use AgriScope Earth, cite the software version and the exact upstream datasets recorded in your exported evidence receipt."
+title: "AgriScope Earth 3D"
+type: software
+version: 1.0.0
+date-released: 2026-08-30
+license: MIT
+repository-code: "https://github.com/180-abdullah/agriscope-earth-3d"
+abstract: "A transparent global 3D Earth console and Python research API for six agricultural and environmental screening missions."

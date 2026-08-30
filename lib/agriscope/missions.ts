@@ -1,0 +1,127 @@
+import type { MissionDefinition, MissionId } from "./types";
+
+const crops = ["rice", "maize", "wheat", "soybean", "cotton", "potato", "vegetables", "orchard"];
+
+export const MISSIONS: MissionDefinition[] = [
+  {
+    id: "flood-watch",
+    code: "M01",
+    shortName: "Flood",
+    name: "Global Flood & Crop Exposure Watch",
+    question: "Where could forecast river conditions expose agricultural land?",
+    description: "A transparent screening score from forecast discharge, rain, crop-stage sensitivity and drainage vulnerability.",
+    accent: "#63d7cc",
+    timeWindow: "7-day forecast",
+    evidence: "Open-Meteo Flood / GloFAS + weather forecast",
+    locationBehavior: "Location-sensitive: river discharge and rainfall are fetched for the selected coordinate.",
+    defaultArea: 25_000,
+    fields: [
+      { key: "crop_stage_sensitivity", label: "Crop-stage sensitivity", type: "range", defaultValue: 0.75, min: 0, max: 1, step: 0.05, help: "Relative sensitivity of the crop at its current stage." },
+      { key: "drainage_vulnerability", label: "Drainage vulnerability", type: "range", defaultValue: 0.55, min: 0, max: 1, step: 0.05, help: "Local ponding and drainage susceptibility." },
+    ],
+  },
+  {
+    id: "crop-stress",
+    code: "M02",
+    shortName: "Crop stress",
+    name: "Global Crop Stress Patrol",
+    question: "Which fields should be checked first for vegetation, moisture or heat stress?",
+    description: "Combines cloud-masked vegetation indices, modelled soil moisture and forecast heat without claiming a disease diagnosis.",
+    accent: "#a9d96c",
+    timeWindow: "Latest clear scene + 7-day forecast",
+    evidence: "Sentinel-2 L2A via Earth Search + Open-Meteo",
+    locationBehavior: "Location-sensitive with the Python API. Browser mode uses live local weather plus the visible NDVI/NDMI values.",
+    defaultArea: 8_000,
+    fields: [
+      { key: "use_live_sentinel", label: "Use live Sentinel-2", type: "switch", defaultValue: true, help: "Search and quality-mask a recent Level-2A scene in the Python API." },
+      { key: "ndvi", label: "NDVI override", type: "number", defaultValue: 0.55, min: -1, max: 1, step: 0.01, unit: "index", help: "Processed field summary used in browser mode or as an override." },
+      { key: "ndmi", label: "NDMI override", type: "number", defaultValue: 0.18, min: -1, max: 1, step: 0.01, unit: "index", help: "Processed canopy-moisture proxy." },
+      { key: "sentinel_max_cloud_pct", label: "Scene cloud ceiling", type: "range", defaultValue: 35, min: 0, max: 80, step: 5, unit: "%", help: "Maximum whole-scene cloud metadata accepted during search." },
+    ],
+  },
+  {
+    id: "land-change",
+    code: "M03",
+    shortName: "Land change",
+    name: "Global Wetland & Land-Use Change Audit",
+    question: "How have water, cropland and tree-cover shares changed between two observations?",
+    description: "Calculates percentage-point changes from baseline and current classified summaries with an explicit verification flag.",
+    accent: "#71aee8",
+    timeWindow: "User-defined baseline → current",
+    evidence: "Validated classified raster summaries supplied by the researcher",
+    locationBehavior: "Input-driven: coordinates anchor the study area, but identical class summaries correctly produce identical results.",
+    defaultArea: 50_000,
+    fields: [
+      { key: "baseline_water_pct", label: "Baseline water / wetland", type: "number", defaultValue: 36, min: 0, max: 100, step: 0.1, unit: "%", help: "Classified share at the baseline date." },
+      { key: "current_water_pct", label: "Current water / wetland", type: "number", defaultValue: 30, min: 0, max: 100, step: 0.1, unit: "%", help: "Classified share at the current date." },
+      { key: "baseline_cropland_pct", label: "Baseline cropland", type: "number", defaultValue: 32, min: 0, max: 100, step: 0.1, unit: "%", help: "Cropland share at baseline." },
+      { key: "current_cropland_pct", label: "Current cropland", type: "number", defaultValue: 39, min: 0, max: 100, step: 0.1, unit: "%", help: "Cropland share currently." },
+      { key: "baseline_tree_pct", label: "Baseline tree cover", type: "number", defaultValue: 22, min: 0, max: 100, step: 0.1, unit: "%", help: "Tree-cover share at baseline." },
+      { key: "current_tree_pct", label: "Current tree cover", type: "number", defaultValue: 18, min: 0, max: 100, step: 0.1, unit: "%", help: "Tree-cover share currently." },
+      { key: "class_data_confirmed", label: "I verified the classifications", type: "switch", defaultValue: false, help: "Confirm only after checking products, dates, masks and accuracy evidence." },
+    ],
+  },
+  {
+    id: "irrigation",
+    code: "M04",
+    shortName: "Irrigation",
+    name: "Global Irrigation Intelligence",
+    question: "How much water and pumping energy may be needed in seven days?",
+    description: "Uses FAO-56 reference evapotranspiration, crop coefficients, effective rainfall and hydraulic energy equations.",
+    accent: "#6fc9e6",
+    timeWindow: "7-day forecast",
+    evidence: "Open-Meteo ET₀ + rainfall + user system inputs",
+    locationBehavior: "Location-sensitive: ET₀ and rainfall are refreshed for the selected coordinate on every run.",
+    defaultArea: 1_200,
+    fields: [
+      { key: "crop", label: "Crop", type: "select", defaultValue: "maize", options: crops.map((crop) => ({ label: crop[0].toUpperCase() + crop.slice(1), value: crop })), help: "Selects a visible default crop coefficient." },
+      { key: "effective_rain_fraction", label: "Effective-rain fraction", type: "range", defaultValue: 0.8, min: 0, max: 1, step: 0.05, help: "Share of forecast rain assumed available to the root zone." },
+      { key: "application_efficiency", label: "Application efficiency", type: "range", defaultValue: 0.7, min: 0.1, max: 1, step: 0.05, help: "Share of applied water reaching the root zone." },
+      { key: "pump_efficiency", label: "Pump efficiency", type: "range", defaultValue: 0.55, min: 0.1, max: 1, step: 0.05, help: "Wire-to-water efficiency." },
+      { key: "total_dynamic_head_m", label: "Total dynamic head", type: "number", defaultValue: 18, min: 0, max: 500, step: 1, unit: "m", help: "Static lift plus pressure and friction losses." },
+    ],
+  },
+  {
+    id: "carbon",
+    code: "M05",
+    shortName: "Farm carbon",
+    name: "Global Agricultural Carbon Scanner",
+    question: "What is the Tier 1 footprint of supplied farm activity data?",
+    description: "Screens direct fertilizer N₂O, flooded-rice CH₄, energy CO₂ and livestock CH₄ with a visible inventory boundary.",
+    accent: "#e7b96d",
+    timeWindow: "Selected inventory period",
+    evidence: "User activity data + IPCC Tier 1 equations",
+    locationBehavior: "Activity-driven: identical activity data correctly produce identical emissions regardless of the map coordinate.",
+    defaultArea: 500,
+    fields: [
+      { key: "fertilizer_n_kg_ha", label: "Fertilizer nitrogen", type: "number", defaultValue: 110, min: 0, max: 1000, step: 1, unit: "kg N/ha", help: "Nitrogen included in the direct soil N₂O calculation." },
+      { key: "rice_area_hectares", label: "Flooded rice area", type: "number", defaultValue: 200, min: 0, max: 1_000_000, step: 1, unit: "ha", help: "Area subject to the rice methane factor." },
+      { key: "rice_cultivation_days", label: "Rice cultivation period", type: "number", defaultValue: 110, min: 0, max: 365, step: 1, unit: "days", help: "Cultivation days in the inventory period." },
+      { key: "diesel_litres", label: "Diesel use", type: "number", defaultValue: 32_500, min: 0, max: 100_000_000, step: 100, unit: "L", help: "On-farm combustion in the boundary." },
+      { key: "electricity_kwh", label: "Electricity use", type: "number", defaultValue: 0, min: 0, max: 1_000_000_000, step: 100, unit: "kWh", help: "Inventory-period electricity consumption." },
+      { key: "livestock_head", label: "Livestock head", type: "number", defaultValue: 0, min: 0, max: 10_000_000, step: 1, help: "Head count for Tier 1 enteric methane." },
+    ],
+  },
+  {
+    id: "fire-heat",
+    code: "M06",
+    shortName: "Fire + heat",
+    name: "Global Agricultural Fire & Heat Watch",
+    question: "Where do heat, dryness, wind and hotspots justify rapid verification?",
+    description: "Combines weather indicators and optional NASA FIRMS detections without treating every thermal anomaly as a fire.",
+    accent: "#e98569",
+    timeWindow: "2-day hotspots + 7-day forecast",
+    evidence: "NASA FIRMS (optional key) + Open-Meteo",
+    locationBehavior: "Location-sensitive: forecast heat, humidity, rain, wind and configured FIRMS detections are refreshed.",
+    defaultArea: 10_000,
+    fields: [
+      { key: "hotspot_count", label: "Verified hotspot override", type: "number", defaultValue: 0, min: 0, max: 10_000, step: 1, unit: "detections", help: "Leave zero to use the backend FIRMS search when configured." },
+    ],
+  },
+];
+
+export const MISSION_BY_ID = Object.fromEntries(MISSIONS.map((mission) => [mission.id, mission])) as Record<MissionId, MissionDefinition>;
+
+export function defaultParameters(mission: MissionDefinition) {
+  return Object.fromEntries(mission.fields.map((field) => [field.key, field.defaultValue])) as Record<string, string | number | boolean>;
+}
