@@ -19,75 +19,343 @@ CROP_COEFFICIENTS = {
 
 
 async def analyze(request: AnalysisRequest) -> AnalysisResponse:
-    weather, weather_status = await weather_snapshot(request.latitude, request.longitude)
-    crop = str(request.parameters.get("crop", "maize")).strip().lower()
-    kc = number(request.parameters, "crop_coefficient", CROP_COEFFICIENTS.get(crop, 1.0))
-    et0 = max(0.0, number(request.parameters, "et0_7d_mm", weather["et0_7d_mm"]))
-    rain = max(0.0, number(request.parameters, "rain_7d_mm", weather["rain_7d_mm"]))
-    effective_rain_fraction = clamp(number(request.parameters, "effective_rain_fraction", 0.80), 0, 1)
-    application_efficiency = clamp(number(request.parameters, "application_efficiency", 0.70), 0.1, 1)
-    pump_efficiency = clamp(number(request.parameters, "pump_efficiency", 0.55), 0.1, 1)
-    total_dynamic_head_m = max(0.0, number(request.parameters, "total_dynamic_head_m", 18.0))
+
+    weather, weather_status = await weather_snapshot(
+        request.latitude,
+        request.longitude
+    )
+
+
+    crop = str(
+        request.parameters.get("crop", "rice")
+    ).strip().lower()
+
+
+    kc = number(
+        request.parameters,
+        "crop_coefficient",
+        CROP_COEFFICIENTS.get(crop, 1.0)
+    )
+
+
+    et0 = max(
+        0.0,
+        number(
+            request.parameters,
+            "et0_7d_mm",
+            weather["et0_7d_mm"]
+        )
+    )
+
+
+    rain = max(
+        0.0,
+        number(
+            request.parameters,
+            "rain_7d_mm",
+            weather["rain_7d_mm"]
+        )
+    )
+
+
+    soil_moisture = clamp(
+        number(
+            request.parameters,
+            "soil_moisture_m3_m3",
+            weather["soil_moisture_m3_m3"]
+        ),
+        0,
+        0.7
+    )
+
+
+    effective_rain_fraction = clamp(
+        number(
+            request.parameters,
+            "effective_rain_fraction",
+            0.80
+        ),
+        0,
+        1
+    )
+
+
+    application_efficiency = clamp(
+        number(
+            request.parameters,
+            "application_efficiency",
+            0.70
+        ),
+        0.1,
+        1
+    )
+
+
+    pump_efficiency = clamp(
+        number(
+            request.parameters,
+            "pump_efficiency",
+            0.55
+        ),
+        0.1,
+        1
+    )
+
+
+    total_dynamic_head_m = max(
+        0.0,
+        number(
+            request.parameters,
+            "total_dynamic_head_m",
+            18.0
+        )
+    )
+
+
+    # Water balance
 
     crop_et = kc * et0
+
     effective_rain = rain * effective_rain_fraction
-    raw_water_balance = crop_et - effective_rain
-    net_depth = max(0.0, raw_water_balance)
-    gross_depth = net_depth / application_efficiency
-    volume_m3 = gross_depth * request.area_hectares * 10.0
-    hydraulic_kwh = 1000.0 * 9.80665 * total_dynamic_head_m * volume_m3 / 3_600_000.0
-    electricity_kwh = hydraulic_kwh / pump_efficiency
-    score = clamp(gross_depth / 65.0 * 100.0)
+
+    water_balance = crop_et - effective_rain
+
+    deficit = max(
+        0,
+        water_balance
+    )
+
+
+    # Adjust deficit using soil moisture
+
+    soil_adjustment = clamp(
+        (0.30 - soil_moisture) / 0.30,
+        0,
+        1
+    )
+
+
+    adjusted_deficit = deficit * (
+        0.7 + 0.3 * soil_adjustment
+    )
+
+
+    gross_depth = adjusted_deficit / application_efficiency
+
+
+    volume_m3 = (
+        gross_depth
+        *
+        request.area_hectares
+        *
+        10
+    )
+
+
+    hydraulic_kwh = (
+        1000
+        *
+        9.80665
+        *
+        total_dynamic_head_m
+        *
+        volume_m3
+        /
+        3600000
+    )
+
+
+    electricity_kwh = (
+        hydraulic_kwh
+        /
+        pump_efficiency
+    )
+
+
+    # Irrigation need score
+
+    if gross_depth <= 10:
+        score = 10
+
+    elif gross_depth <= 30:
+        score = 30
+
+    elif gross_depth <= 60:
+        score = 60
+
+    else:
+        score = 85
+
+
+    # Rainfall correction
+
+    if rain >= 100:
+        score *= 0.5
+
+    elif rain >= 50:
+        score *= 0.75
+
+
+    score = clamp(score)
+
+
     et0_supplied = "et0_7d_mm" in request.parameters
+
     rain_supplied = "rain_7d_mm" in request.parameters
-    external_weather_used = not (et0_supplied and rain_supplied)
-    statuses = {DataStatus.CALCULATED, DataStatus.USER_SUPPLIED}
+
+
+    external_weather_used = not (
+        et0_supplied
+        and rain_supplied
+    )
+
+
+    statuses = {
+        DataStatus.CALCULATED,
+        DataStatus.USER_SUPPLIED
+    }
+
+
     if external_weather_used:
         statuses.add(weather_status)
-    evidence_confidence = 0.74 if external_weather_used and weather_status == DataStatus.FORECAST else 0.62
-    if external_weather_used and weather_status == DataStatus.DEMONSTRATION:
-        evidence_confidence = 0.47
-    if net_depth <= 0:
+
+
+    confidence = (
+        0.74
+        if weather_status == DataStatus.FORECAST
+        else 0.47
+    )
+
+
+    if adjusted_deficit <= 0:
+
         summary = (
-            f"No seven-day irrigation deficit is indicated: crop ET is {crop_et:.1f} mm and effective rainfall is "
-            f"{effective_rain:.1f} mm, leaving a {raw_water_balance:.1f} mm balance. Gross depth, pumping volume and "
-            "energy are therefore zero. Pump head and efficiency cannot change energy until the required volume is above zero."
-        )
-    else:
-        summary = (
-            f"The seven-day screening water requirement for {crop} is approximately {gross_depth:.1f} mm after "
-            f"effective rainfall and {application_efficiency:.0%} application efficiency. Verify soil-water status and "
-            "the crop coefficient before operating equipment."
+            f"No irrigation deficit detected for {crop}. "
+            f"Crop ET was {crop_et:.1f} mm and effective rainfall was "
+            f"{effective_rain:.1f} mm."
         )
 
+    else:
+
+        summary = (
+            f"The seven-day water balance suggests approximately "
+            f"{gross_depth:.1f} mm irrigation requirement for {crop}. "
+            "Verify soil moisture and crop growth stage before irrigation."
+        )
+
+
     return AnalysisResponse(
+
         mission=request.mission,
+
         title="Global Irrigation Intelligence",
-        coordinates=Coordinates(latitude=request.latitude, longitude=request.longitude),
+
+        coordinates=Coordinates(
+            latitude=request.latitude,
+            longitude=request.longitude
+        ),
+
         area_hectares=request.area_hectares,
-        score=round(score, 1),
+
+        score=round(score,1),
+
         risk_level=risk_level(score),
-        confidence=evidence_confidence,
+
+        confidence=confidence,
+
         summary=summary,
-        data_status=sorted(statuses, key=lambda item: item.value),
+
+        data_status=sorted(
+            statuses,
+            key=lambda item:item.value
+        ),
+
         metrics=[
-            Metric(key="reference_et0", label="Reference ET₀", value=round(et0, 1), unit="mm / 7 d", interpretation="Forecast or supplied FAO-56 reference evapotranspiration at the target coordinate."),
-            Metric(key="rainfall", label="Total rainfall", value=round(rain, 1), unit="mm / 7 d", interpretation="Forecast or supplied precipitation before the effective-rain fraction is applied."),
-            Metric(key="crop_coefficient", label="Crop coefficient", value=round(kc, 2), unit="Kc", interpretation="Selected or supplied coefficient used to convert ET₀ to crop ET."),
-            Metric(key="crop_et", label="Crop evapotranspiration", value=round(crop_et, 1), unit="mm / 7 d", interpretation="ET₀ multiplied by the selected crop coefficient."),
-            Metric(key="effective_rain", label="Effective rainfall", value=round(effective_rain, 1), unit="mm / 7 d", interpretation="Forecast rainfall multiplied by the assumed effective fraction."),
-            Metric(key="raw_balance", label="Crop ET minus effective rain", value=round(raw_water_balance, 1), unit="mm / 7 d", interpretation="A value at or below zero produces no irrigation deficit in this seven-day screening balance."),
-            Metric(key="net_depth", label="Net irrigation deficit", value=round(net_depth, 1), unit="mm", interpretation="Positive part of crop ET minus effective rainfall, before application losses."),
-            Metric(key="gross_depth", label="Gross irrigation depth", value=round(gross_depth, 1), unit="mm", interpretation="Net need adjusted for application efficiency."),
-            Metric(key="water_volume", label="Irrigation volume", value=round(volume_m3, 0), unit="m³", interpretation="One millimetre over one hectare equals ten cubic metres."),
-            Metric(key="energy", label="Estimated pumping electricity", value=round(electricity_kwh, 1), unit="kWh", interpretation="Hydraulic energy adjusted for pump efficiency."),
+
+            Metric(
+                key="reference_et0",
+                label="Reference ET₀",
+                value=round(et0,1),
+                unit="mm / 7 d",
+                interpretation="Atmospheric water demand."
+            ),
+
+            Metric(
+                key="crop_et",
+                label="Crop evapotranspiration",
+                value=round(crop_et,1),
+                unit="mm / 7 d",
+                interpretation="Crop water requirement."
+            ),
+
+            Metric(
+                key="rainfall",
+                label="Rainfall",
+                value=round(rain,1),
+                unit="mm / 7 d",
+                interpretation="Available precipitation."
+            ),
+
+            Metric(
+                key="soil_moisture",
+                label="Soil moisture",
+                value=round(soil_moisture,3),
+                unit="m³/m³",
+                interpretation="Available soil water condition."
+            ),
+
+            Metric(
+                key="gross_depth",
+                label="Required irrigation depth",
+                value=round(gross_depth,1),
+                unit="mm",
+                interpretation="Adjusted irrigation requirement."
+            ),
+
+            Metric(
+                key="water_volume",
+                label="Irrigation volume",
+                value=round(volume_m3,0),
+                unit="m³",
+                interpretation="Required field water volume."
+            ),
+
+            Metric(
+                key="energy",
+                label="Pumping electricity",
+                value=round(electricity_kwh,1),
+                unit="kWh",
+                interpretation="Estimated pumping energy."
+            ),
         ],
-        sources=[open_meteo_weather(weather_status)] if external_weather_used else [],
+
+
+        sources=[
+            open_meteo_weather(weather_status)
+        ]
+        if external_weather_used
+        else [],
+
+
         caveats=[
-            "The calculation is a screening water balance and does not simulate root-zone storage or irrigation timing.",
-            "A zero result means this seven-day forecast balance has no positive deficit; it does not mean the crop will never require irrigation.",
-            "Crop coefficients vary by growth stage, climate, variety and management.",
-            "Actual pumping energy also depends on motor, transmission, pipe friction and operating condition.",
+
+            "This is a seven-day water balance screening model, not a full irrigation scheduling model.",
+
+            "Crop coefficient changes with variety, growth stage and management.",
+
+            "Field soil moisture measurement improves irrigation decisions."
+
         ],
-        geometry=point_geometry(request.latitude, request.longitude, {"score": round(score, 1), "gross_irrigation_mm": gross_depth, "mission": request.mission.value}),
+
+
+        geometry=point_geometry(
+            request.latitude,
+            request.longitude,
+            {
+                "score":round(score,1),
+                "gross_irrigation_mm":gross_depth,
+                "mission":request.mission.value
+            }
+        )
+
     )
