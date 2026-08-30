@@ -371,5 +371,15 @@ export const MISSIONS: MissionDefinition[] = [
 export const MISSION_BY_ID = Object.fromEntries(MISSIONS.map((mission) => [mission.id, mission])) as Record<MissionId, MissionDefinition>;
 
 export function defaultParameters(mission: MissionDefinition) {
-  return Object.fromEntries(mission.fields.map((field) => [field.key, field.defaultValue])) as Record<string, string | number | boolean>;
+  const allFields = [
+    ...mission.fields,
+    ...(mission.researchFields ?? [])
+  ];
+
+  return Object.fromEntries(
+    allFields.map((field) => [
+      field.key,
+      field.defaultValue
+    ])
+  ) as Record<string, string | number | boolean>;
 }
