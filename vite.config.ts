@@ -11,10 +11,12 @@ const localBindingConfig = {
 };
 
 export default defineConfig(async () => {
+  // Keep Wrangler and Miniflare state project-local
   process.env.WRANGLER_WRITE_LOGS ??= "false";
   process.env.WRANGLER_LOG_PATH ??= ".wrangler/logs";
   process.env.MINIFLARE_REGISTRY_PATH ??= ".wrangler/registry";
 
+  // Cloudflare Vite plugin
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
@@ -22,7 +24,12 @@ export default defineConfig(async () => {
       host: "0.0.0.0",
       allowedHosts: ["terminal.local"],
       ...(isCodexSeatbeltSandbox
-        ? { watch: { useFsEvents: false, usePolling: true } }
+        ? {
+            watch: {
+              useFsEvents: false,
+              usePolling: true,
+            },
+          }
         : {}),
     },
 
@@ -30,7 +37,10 @@ export default defineConfig(async () => {
       vinext(),
       sites(),
       cloudflare({
-        viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
+        viteEnvironment: {
+          name: "rsc",
+          childEnvironments: ["ssr"],
+        },
         inspectorPort: false,
         config: localBindingConfig,
       }),
