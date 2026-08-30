@@ -19,6 +19,42 @@ export const MISSIONS: MissionDefinition[] = [
       { key: "crop_stage_sensitivity", label: "Crop-stage sensitivity", type: "range", defaultValue: 0.75, min: 0, max: 1, step: 0.05, help: "Relative sensitivity of the crop at its current stage." },
       { key: "drainage_vulnerability", label: "Drainage vulnerability", type: "range", defaultValue: 0.55, min: 0, max: 1, step: 0.05, help: "Local ponding and drainage susceptibility." },
     ],
+    researchFields: [
+      {
+        key:"river_distance_km",
+        label:"Distance from river",
+        type:"number",
+        defaultValue:5,
+        min:0,
+        max:100,
+        step:1,
+        unit:"km",
+        help:"Distance between agricultural area and major river system."
+      },
+      {
+        key:"soil_drainage_class",
+        label:"Soil drainage condition",
+        type:"select",
+        defaultValue:"medium",
+        options:[
+          {label:"Poor",value:"poor"},
+          {label:"Medium",value:"medium"},
+          {label:"Good",value:"good"}
+        ],
+        help:"Local drainage condition."
+      },
+      {
+        key:"flood_history_years",
+        label:"Historical flood frequency",
+        type:"number",
+        defaultValue:5,
+        min:0,
+        max:100,
+        step:1,
+        unit:"events",
+        help:"Number of significant flood events recorded."
+      }
+    ],
   },
   {
     id: "crop-stress",
@@ -37,6 +73,50 @@ export const MISSIONS: MissionDefinition[] = [
       { key: "ndvi", label: "NDVI override", type: "number", defaultValue: 0.55, min: -1, max: 1, step: 0.01, unit: "index", help: "Processed field summary used in browser mode or as an override." },
       { key: "ndmi", label: "NDMI override", type: "number", defaultValue: 0.18, min: -1, max: 1, step: 0.01, unit: "index", help: "Processed canopy-moisture proxy." },
       { key: "sentinel_max_cloud_pct", label: "Scene cloud ceiling", type: "range", defaultValue: 35, min: 0, max: 80, step: 5, unit: "%", help: "Maximum whole-scene cloud metadata accepted during search." },
+    ],
+    researchFields: [
+      {
+        key:"crop_type",
+        label:"Crop type",
+        type:"select",
+        defaultValue:"rice",
+        options:[
+          {label:"Rice",value:"rice"},
+          {label:"Maize",value:"maize"},
+          {label:"Wheat",value:"wheat"},
+          {label:"Vegetable",value:"vegetable"}
+        ],
+        help:"Dominant crop system."
+      },
+      {
+        key:"growth_stage",
+        label:"Crop growth stage",
+        type:"select",
+        defaultValue:"vegetative",
+        options:[
+          {label:"Vegetative",value:"vegetative"},
+          {label:"Flowering",value:"flowering"},
+          {label:"Maturity",value:"maturity"}
+        ],
+        help:"Current crop stage."
+      },
+      {
+        key:"irrigation_available",
+        label:"Irrigation available",
+        type:"switch",
+        defaultValue:true,
+        help:"Availability of supplemental irrigation."
+      },
+      {
+        key:"farmer_stress_observation",
+        label:"Observed crop stress",
+        type:"range",
+        defaultValue:0.5,
+        min:0,
+        max:1,
+        step:0.05,
+        help:"Researcher observation score."
+      }
     ],
   },
   {
@@ -60,6 +140,45 @@ export const MISSIONS: MissionDefinition[] = [
       { key: "current_tree_pct", label: "Current tree cover", type: "number", defaultValue: 18, min: 0, max: 100, step: 0.1, unit: "%", help: "Tree-cover share currently." },
       { key: "class_data_confirmed", label: "I verified the classifications", type: "switch", defaultValue: false, help: "Confirm only after checking products, dates, masks and accuracy evidence." },
     ],
+    researchFields: [
+      {
+        key:"baseline_year",
+        label:"Baseline year",
+        type:"number",
+        defaultValue:2018,
+        min:1980,
+        max:2026,
+        step:1
+      },
+      {
+        key:"current_year",
+        label:"Current year",
+        type:"number",
+        defaultValue:2026,
+        min:1980,
+        max:2026,
+        step:1
+      },
+      {
+        key:"change_detection_verified",
+        label:"Change detection verified",
+        type:"switch",
+        defaultValue:false,
+        help:"Confirm after checking satellite classification."
+      },
+      {
+        key:"land_use_category",
+        label:"Main land-use type",
+        type:"select",
+        defaultValue:"cropland",
+        options:[
+          {label:"Cropland",value:"cropland"},
+          {label:"Wetland",value:"wetland"},
+          {label:"Forest",value:"forest"},
+          {label:"Urban",value:"urban"}
+        ]
+      }
+    ],
   },
   {
     id: "irrigation",
@@ -79,6 +198,48 @@ export const MISSIONS: MissionDefinition[] = [
       { key: "application_efficiency", label: "Application efficiency", type: "range", defaultValue: 0.7, min: 0.1, max: 1, step: 0.05, help: "Share of applied water reaching the root zone." },
       { key: "pump_efficiency", label: "Pump efficiency", type: "range", defaultValue: 0.55, min: 0.1, max: 1, step: 0.05, help: "Wire-to-water efficiency." },
       { key: "total_dynamic_head_m", label: "Total dynamic head", type: "number", defaultValue: 18, min: 0, max: 500, step: 1, unit: "m", help: "Static lift plus pressure and friction losses." },
+    ],
+    researchFields: [
+      {
+        key:"water_source",
+        label:"Water source",
+        type:"select",
+        defaultValue:"groundwater",
+        options:[
+          {label:"Groundwater",value:"groundwater"},
+          {label:"River",value:"river"},
+          {label:"Rainwater",value:"rainwater"}
+        ]
+      },
+      {
+        key:"irrigation_method",
+        label:"Irrigation method",
+        type:"select",
+        defaultValue:"flood",
+        options:[
+          {label:"Flood irrigation",value:"flood"},
+          {label:"Sprinkler",value:"sprinkler"},
+          {label:"Drip",value:"drip"}
+        ]
+      },
+      {
+        key:"soil_water_holding",
+        label:"Soil water holding capacity",
+        type:"range",
+        defaultValue:0.5,
+        min:0,
+        max:1,
+        step:0.05
+      },
+      {
+        key:"farmer_water_constraint",
+        label:"Water availability constraint",
+        type:"range",
+        defaultValue:0.4,
+        min:0,
+        max:1,
+        step:0.05
+      }
     ],
   },
   {
@@ -101,6 +262,42 @@ export const MISSIONS: MissionDefinition[] = [
       { key: "electricity_kwh", label: "Electricity use", type: "number", defaultValue: 0, min: 0, max: 1_000_000_000, step: 100, unit: "kWh", help: "Inventory-period electricity consumption." },
       { key: "livestock_head", label: "Livestock head", type: "number", defaultValue: 0, min: 0, max: 10_000_000, step: 1, help: "Head count for Tier 1 enteric methane." },
     ],
+    researchFields: [
+      {
+        key:"farm_system",
+        label:"Farming system",
+        type:"select",
+        defaultValue:"mixed",
+        options:[
+          {label:"Crop only",value:"crop"},
+          {label:"Livestock only",value:"livestock"},
+          {label:"Mixed farming",value:"mixed"}
+        ]
+      },
+      {
+        key:"organic_fertilizer_use",
+        label:"Organic fertilizer used",
+        type:"switch",
+        defaultValue:false
+      },
+      {
+        key:"residue_management",
+        label:"Crop residue management",
+        type:"select",
+        defaultValue:"removed",
+        options:[
+          {label:"Removed",value:"removed"},
+          {label:"Burned",value:"burned"},
+          {label:"Returned to soil",value:"returned"}
+        ]
+      },
+      {
+        key:"carbon_reduction_practice",
+        label:"Climate-smart practices",
+        type:"switch",
+        defaultValue:false
+      }
+    ],
   },
   {
     id: "fire-heat",
@@ -116,6 +313,57 @@ export const MISSIONS: MissionDefinition[] = [
     defaultArea: 10_000,
     fields: [
       { key: "hotspot_count", label: "Verified hotspot override", type: "number", defaultValue: 0, min: 0, max: 10_000, step: 1, unit: "detections", help: "Leave zero to use the backend FIRMS search when configured." },
+    ],
+    researchFields: [
+      {
+        key:"temperature_max_c",
+        label:"Maximum temperature",
+        type:"number",
+        defaultValue:37,
+        min:-20,
+        max:60,
+        step:0.1,
+        unit:"°C"
+      },
+      {
+        key:"relative_humidity",
+        label:"Relative humidity",
+        type:"number",
+        defaultValue:35,
+        min:0,
+        max:100,
+        step:1,
+        unit:"%"
+      },
+      {
+        key:"rainfall_7d",
+        label:"7-day rainfall",
+        type:"number",
+        defaultValue:5,
+        min:0,
+        max:1000,
+        step:1,
+        unit:"mm"
+      },
+      {
+        key:"wind_max_kmh",
+        label:"Maximum wind",
+        type:"number",
+        defaultValue:28,
+        min:0,
+        max:200,
+        step:1,
+        unit:"km/h"
+      },
+      {
+        key:"vegetation_dryness",
+        label:"Vegetation dryness",
+        type:"range",
+        defaultValue:0.5,
+        min:0,
+        max:1,
+        step:0.05
+      }
     ],
   },
 ];
