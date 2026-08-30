@@ -191,3 +191,6 @@ GitHub Actions runs both on pushes and pull requests.
 Application code is MIT licensed. Upstream datasets, satellite imagery, basemaps and terrain retain their own licences and attribution requirements. Keep the on-globe credits visible and cite the exact upstream products recorded in each research receipt.
 
 This interface is an original agricultural research design. It does not copy another repository's source code or branded assets.
+
+
+
