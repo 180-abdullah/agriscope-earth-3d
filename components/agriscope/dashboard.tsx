@@ -125,6 +125,8 @@ function initialParameterState() {
 export function AgriScopeDashboard() {
   const [missionId, setMissionId] = useState<MissionId>("irrigation");
   const [analysisMode, setAnalysisMode] = useState<"guided" | "research">("guided");
+  const [interfaceMode, setInterfaceMode] = useState<"guided" | "research">("guided");
+  const researchMode = interfaceMode === "research";
   const [researchObjective, setResearchObjective] = useState("");
   const [cropSystem, setCropSystem] = useState("");
   const mission = MISSION_BY_ID[missionId];
@@ -383,6 +385,52 @@ export function AgriScopeDashboard() {
             <SheetDescription>{mission.question}</SheetDescription>
           </SheetHeader>
           <div className="sheet-scroll">
+            <section className="form-section">
+              <div className="section-heading">
+                <span>0</span>
+                <div><strong>Interface mode</strong><small>Choose workflow depth</small></div>
+              </div>
+              <div className="field-pair">
+                <Button
+                  variant={interfaceMode === "guided" ? "default" : "outline"}
+                  onClick={() => { setInterfaceMode("guided"); setAnalysisMode("guided"); }}
+                >
+                  Guided
+                </Button>
+                <Button
+                  variant={interfaceMode === "research" ? "default" : "outline"}
+                  onClick={() => { setInterfaceMode("research"); setAnalysisMode("research"); }}
+                >
+                  Research
+                </Button>
+              </div>
+            </section>
+
+            {researchMode && (
+              <section className="form-section">
+                <div className="section-heading">
+                  <span>R</span>
+                  <div><strong>Research context</strong><small>Additional scientific metadata</small></div>
+                </div>
+                <label className="text-field">
+                  <span>Research objective</span>
+                  <input
+                    value={researchObjective}
+                    onChange={(event) => setResearchObjective(event.target.value)}
+                    placeholder="Example: Assess climate risk for rice production in Sylhet"
+                  />
+                </label>
+                <label className="text-field">
+                  <span>Crop or agricultural system</span>
+                  <input
+                    value={cropSystem}
+                    onChange={(event) => setCropSystem(event.target.value)}
+                    placeholder="Rice, tea, maize, livestock..."
+                  />
+                </label>
+              </section>
+            )}
+
             <div className="quiet-note">
               <strong>{analysisMode === "guided" ? "Guided analysis workflow" : "Research analysis workflow"}</strong>
               <p>
@@ -451,7 +499,20 @@ export function AgriScopeDashboard() {
           </div>
           <div className="sheet-runbar">
             <span>{apiConnected ? "Authoritative Python engine" : "Live browser engine available"}</span>
-            <Button size="lg" onClick={analyze} disabled={running}>{running ? "Retrieving Earth data…" : "Run analysis"}</Button>
+            <div className="field-pair">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setLatitude(23.685);
+                  setLongitude(90.3563);
+                  setAreaHectares(mission.defaultArea);
+                  setPlaceName("Bangladesh worked example");
+                }}
+              >
+                ▶ RUN WORKED EXAMPLE
+              </Button>
+              <Button size="lg" onClick={analyze} disabled={running}>{running ? "Retrieving Earth data…" : "Run analysis"}</Button>
+            </div>
           </div>
         </SheetContent>
       </Sheet>
