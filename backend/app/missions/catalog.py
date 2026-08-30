@@ -1,0 +1,81 @@
+from __future__ import annotations
+
+from ..models import DataStatus, MissionDefinition, MissionId
+
+
+MISSIONS = [
+    MissionDefinition(
+        id=MissionId.FLOOD,
+        name="Global Flood & Crop Exposure Watch",
+        short_name="Flood Watch",
+        question="Where could forecast river conditions expose agricultural land?",
+        description="Combines modelled river discharge, precipitation and vulnerability assumptions into an explicitly labelled screening score.",
+        accent="#48e5c2",
+        default_latitude=15.4,
+        default_longitude=105.8,
+        default_area_hectares=25_000,
+        statuses=[DataStatus.FORECAST, DataStatus.MODELLED],
+    ),
+    MissionDefinition(
+        id=MissionId.CROP_STRESS,
+        name="Global Crop Stress Patrol",
+        short_name="Crop Stress",
+        question="Which fields should be checked first for vegetation, moisture or heat stress?",
+        description="Scores processed NDVI/NDMI, soil moisture and weather while avoiding unsupported disease diagnoses.",
+        accent="#b7ff4a",
+        default_latitude=30.7,
+        default_longitude=75.8,
+        default_area_hectares=8_000,
+        statuses=[DataStatus.USER_SUPPLIED, DataStatus.FORECAST, DataStatus.MODELLED],
+    ),
+    MissionDefinition(
+        id=MissionId.LAND_CHANGE,
+        name="Global Wetland & Land-Use Change Audit",
+        short_name="Land Change",
+        question="How have water, cropland and tree-cover shares changed between two observations?",
+        description="Calculates transparent change indicators from quality-controlled classified summaries.",
+        accent="#44a7ff",
+        default_latitude=-18.3,
+        default_longitude=-57.5,
+        default_area_hectares=50_000,
+        statuses=[DataStatus.OBSERVED, DataStatus.CALCULATED],
+    ),
+    MissionDefinition(
+        id=MissionId.IRRIGATION,
+        name="Global Irrigation Intelligence",
+        short_name="Irrigation",
+        question="How much water and pumping energy may be needed during the next seven days?",
+        description="Uses FAO-56 ET₀, crop coefficients, effective rainfall and hydraulic energy equations.",
+        accent="#5ed6ff",
+        default_latitude=29.9,
+        default_longitude=31.2,
+        default_area_hectares=1_200,
+        statuses=[DataStatus.FORECAST, DataStatus.CALCULATED],
+    ),
+    MissionDefinition(
+        id=MissionId.CARBON,
+        name="Global Agricultural Carbon Scanner",
+        short_name="Carbon",
+        question="What is the Tier 1 greenhouse-gas screening footprint of supplied farm activity data?",
+        description="Estimates fertilizer N₂O, rice CH₄, energy CO₂ and livestock CH₄ with visible boundaries and factors.",
+        accent="#ffbd59",
+        default_latitude=41.8,
+        default_longitude=12.4,
+        default_area_hectares=500,
+        statuses=[DataStatus.USER_SUPPLIED, DataStatus.CALCULATED],
+    ),
+    MissionDefinition(
+        id=MissionId.FIRE_HEAT,
+        name="Global Agricultural Fire & Heat Watch",
+        short_name="Fire + Heat",
+        question="Where do heat, dryness, wind and satellite hotspots justify rapid verification?",
+        description="Combines weather-model indicators and optional NASA FIRMS detections without claiming every hotspot is a fire.",
+        accent="#ff6b4a",
+        default_latitude=37.3,
+        default_longitude=23.7,
+        default_area_hectares=10_000,
+        statuses=[DataStatus.NEAR_REAL_TIME, DataStatus.FORECAST, DataStatus.MODELLED],
+    ),
+]
+
+MISSION_BY_ID = {mission.id: mission for mission in MISSIONS}

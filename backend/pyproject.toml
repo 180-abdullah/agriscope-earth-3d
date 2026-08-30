@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agriscope-earth-api"
+version = "1.0.0"
+description = "Python research engines for six global agricultural and environmental missions"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116,<1",
+  "httpx[socks]>=0.28,<1",
+  "numpy>=2,<3",
+  "pydantic>=2.11,<3",
+  "python-dotenv>=1.1,<2",
+  "rasterio>=1.4,<2",
+  "uvicorn[standard]>=0.35,<1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.4,<9", "pytest-asyncio>=1.1,<2"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
