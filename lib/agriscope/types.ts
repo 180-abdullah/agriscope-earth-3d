@@ -114,5 +114,10 @@ export interface MissionDefinition {
   evidence: string;
   locationBehavior: string;
   defaultArea: number;
+
+  // Parameters shown in both Guided and Research mode
   fields: ParameterField[];
-}
+
+  // Additional scientific parameters shown only in Research mode
+  researchFields?: ParameterField[];
+}}
