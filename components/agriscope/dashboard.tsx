@@ -124,9 +124,7 @@ function initialParameterState() {
 
 export function AgriScopeDashboard() {
   const [missionId, setMissionId] = useState<MissionId>("irrigation");
-  const [analysisMode, setAnalysisMode] = useState<"guided" | "research">("guided");
-  const [interfaceMode, setInterfaceMode] = useState<"guided" | "research">("guided");
-  const researchMode = interfaceMode === "research";
+  const [researchMode, setResearchMode] = useState(false);
   const [researchObjective, setResearchObjective] = useState("");
   const [cropSystem, setCropSystem] = useState("");
   const mission = MISSION_BY_ID[missionId];
@@ -233,7 +231,9 @@ export function AgriScopeDashboard() {
           ...currentParameters,
           research_objective: researchObjective,
           crop_system: cropSystem,
-          analysis_mode: analysisMode,
+          analysis_mode: researchMode
+            ? "research"
+            : "guided",
         },
       });
       setResult(run.result);
@@ -298,20 +298,6 @@ export function AgriScopeDashboard() {
         </form>
 
         <div className="top-actions">
-          <div className="mode-selector">
-            <Button
-              variant={analysisMode === "guided" ? "default" : "outline"}
-              onClick={() => setAnalysisMode("guided")}
-            >
-              Guided Mode
-            </Button>
-            <Button
-              variant={analysisMode === "research" ? "default" : "outline"}
-              onClick={() => setAnalysisMode("research")}
-            >
-              Research Mode
-            </Button>
-          </div>
           <span className={`data-state ${apiConnected ? "connected" : "preview"}`} title={apiConnected ? "Python FastAPI is connected" : "Live browser mode"}>
             <i />{apiConnected ? "Python API" : "Live preview"}
           </span>
@@ -370,9 +356,7 @@ export function AgriScopeDashboard() {
       <div className="mission-summary">
         <span style={{ background: mission.accent }} />
         <div><small>{mission.code} · {mission.timeWindow}</small><strong>{mission.question}</strong></div>
-        <Button onClick={() => setSetupOpen(true)}>
-          {analysisMode === "guided" ? "Start Guided Analysis" : "Open Research Console"}
-        </Button>
+        <Button onClick={() => setSetupOpen(true)}>Configure & run</Button>
       </div>
 
       <div className="globe-status"><i className={globeReady ? "ready" : ""} /> {globeReady ? "3D Earth ready" : "Loading globe"}</div>
@@ -385,60 +369,7 @@ export function AgriScopeDashboard() {
             <SheetDescription>{mission.question}</SheetDescription>
           </SheetHeader>
           <div className="sheet-scroll">
-            <section className="form-section">
-              <div className="section-heading">
-                <span>0</span>
-                <div><strong>Interface mode</strong><small>Choose workflow depth</small></div>
-              </div>
-              <div className="field-pair">
-                <Button
-                  variant={interfaceMode === "guided" ? "default" : "outline"}
-                  onClick={() => { setInterfaceMode("guided"); setAnalysisMode("guided"); }}
-                >
-                  Guided
-                </Button>
-                <Button
-                  variant={interfaceMode === "research" ? "default" : "outline"}
-                  onClick={() => { setInterfaceMode("research"); setAnalysisMode("research"); }}
-                >
-                  Research
-                </Button>
-              </div>
-            </section>
-
-            {researchMode && (
-              <section className="form-section">
-                <div className="section-heading">
-                  <span>R</span>
-                  <div><strong>Research context</strong><small>Additional scientific metadata</small></div>
-                </div>
-                <label className="text-field">
-                  <span>Research objective</span>
-                  <input
-                    value={researchObjective}
-                    onChange={(event) => setResearchObjective(event.target.value)}
-                    placeholder="Example: Assess climate risk for rice production in Sylhet"
-                  />
-                </label>
-                <label className="text-field">
-                  <span>Crop or agricultural system</span>
-                  <input
-                    value={cropSystem}
-                    onChange={(event) => setCropSystem(event.target.value)}
-                    placeholder="Rice, tea, maize, livestock..."
-                  />
-                </label>
-              </section>
-            )}
-
-            <div className="quiet-note">
-              <strong>{analysisMode === "guided" ? "Guided analysis workflow" : "Research analysis workflow"}</strong>
-              <p>
-                {analysisMode === "guided"
-                  ? "Select a mission and location. AgriScope automatically prepares the required Earth observation analysis."
-                  : "Configure scientific parameters manually for reproducible research analysis."}
-              </p>
-            </div>
+            <div className="quiet-note"><strong>What changes with place?</strong><p>{mission.locationBehavior}</p></div>
 
             <section className="form-section">
               <div className="section-heading"><span>1</span><div><strong>Research target</strong><small>Search above or click the globe</small></div></div>
@@ -450,41 +381,63 @@ export function AgriScopeDashboard() {
               <label className="text-field"><span>Analysis area <em>hectares</em></span><input type="number" value={areaHectares} min={0.1} max={10_000_000} step={1} onChange={(event) => setAreaHectares(Number(event.target.value))} /></label>
             </section>
 
-            {analysisMode === "research" && (
-              <section className="form-section">
-                <div className="section-heading">
-                  <span>Research</span>
-                  <div>
-                    <strong>Research context</strong>
-                    <small>Additional scientific metadata</small>
-                  </div>
-                </div>
-
-                <label className="text-field">
-                  <span>Research objective</span>
-                  <textarea
-                    value={researchObjective}
-                    onChange={(event) => setResearchObjective(event.target.value)}
-                    placeholder="Example: Assess climate risk for rice production in Sylhet"
-                  />
-                </label>
-
-                <label className="text-field">
-                  <span>Crop or agricultural system</span>
-                  <input
-                    value={cropSystem}
-                    onChange={(event) => setCropSystem(event.target.value)}
-                    placeholder="Rice, tea, maize, livestock..."
-                  />
-                </label>
-              </section>
-            )}
-
             <section className="form-section">
-              <div className="section-heading"><span>2</span><div><strong>Mission inputs</strong><small>Every value is recorded in the result</small></div></div>
+
+              <div className="section-heading">
+                <span>2</span>
+                <div>
+                  <strong>{researchMode ? "Research parameters" : "Mission inputs"}</strong>
+                  <small>{researchMode ? "Advanced scientific investigation parameters" : "Every value is recorded in the result"}</small>
+                </div>
+              </div>
+
+              <div className="field-pair">
+                <Button
+                  variant={!researchMode ? "default" : "outline"}
+                  onClick={() => setResearchMode(false)}
+                >
+                  Guided
+                </Button>
+                <Button
+                  variant={researchMode ? "default" : "outline"}
+                  onClick={() => setResearchMode(true)}
+                >
+                  Research
+                </Button>
+              </div>
+
+              {researchMode && (
+                <div className="parameter-list">
+                  <label className="text-field parameter-control">
+                    <span>Research objective</span>
+                    <input
+                      value={researchObjective}
+                      onChange={(event) => setResearchObjective(event.target.value)}
+                      placeholder="Example: Flood risk assessment in Sylhet rice fields"
+                    />
+                  </label>
+                  <label className="text-field parameter-control">
+                    <span>Crop or agricultural system</span>
+                    <input
+                      value={cropSystem}
+                      onChange={(event) => setCropSystem(event.target.value)}
+                      placeholder="Rice, tea, maize, livestock"
+                    />
+                  </label>
+                </div>
+              )}
+
               <div className="parameter-list">
-                {mission.fields.map((field) => (
-                  <ParameterControl key={field.key} field={field} value={currentParameters[field.key]} onChange={(value) => updateParameter(field.key, value)} />
+                {[
+                  ...mission.fields,
+                  ...(researchMode ? (mission.researchFields ?? []) : [])
+                ].map((field) => (
+                  <ParameterControl
+                    key={field.key}
+                    field={field}
+                    value={currentParameters[field.key]}
+                    onChange={(value) => updateParameter(field.key, value)}
+                  />
                 ))}
               </div>
             </section>
@@ -499,20 +452,7 @@ export function AgriScopeDashboard() {
           </div>
           <div className="sheet-runbar">
             <span>{apiConnected ? "Authoritative Python engine" : "Live browser engine available"}</span>
-            <div className="field-pair">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setLatitude(23.685);
-                  setLongitude(90.3563);
-                  setAreaHectares(mission.defaultArea);
-                  setPlaceName("Bangladesh worked example");
-                }}
-              >
-                ▶ RUN WORKED EXAMPLE
-              </Button>
-              <Button size="lg" onClick={analyze} disabled={running}>{running ? "Retrieving Earth data…" : "Run analysis"}</Button>
-            </div>
+            <Button size="lg" onClick={analyze} disabled={running}>{running ? "Retrieving Earth data…" : "Run analysis"}</Button>
           </div>
         </SheetContent>
       </Sheet>
